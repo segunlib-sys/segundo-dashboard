@@ -1,0 +1,926 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OS — Segundo Libertini</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{--dark:#111318;--dark2:#1a1d24;--dark3:#22262f;--gold:#c8a96e;--gold2:#e8c98a;--white:#ffffff;--off:#f8f6f0;--text:#1a1a1a;--text2:#5a5a5a;--text3:#9a9a9a;--border:#e8e4dc;--bdark:#2e3240;--green:#2d7a4f;--gbg:#f0faf4;--red:#a32d2d;--blue:#1a4a8a;--bbg:#f0f4fd;--amber:#8a5a0a;--abg:#fdf8f0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--off);color:var(--text);min-height:100vh;display:flex;}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;background:var(--dark);display:flex;align-items:center;justify-content:center;z-index:1000;}
+.login-box{background:var(--dark2);border:1px solid var(--bdark);border-radius:16px;padding:2.5rem;width:340px;text-align:center;}
+.login-logo{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;color:var(--dark);margin:0 auto 1rem;}
+.login-title{font-size:18px;font-weight:500;color:#fff;margin-bottom:4px;}
+.login-sub{font-size:12px;color:#666;margin-bottom:1.5rem;}
+.login-input{width:100%;background:var(--dark3);border:1px solid var(--bdark);border-radius:8px;padding:10px 14px;font-size:14px;color:#fff;font-family:inherit;outline:none;margin-bottom:10px;}
+.login-input:focus{border-color:var(--gold);}
+.login-btn{width:100%;background:var(--gold);color:var(--dark);border:none;border-radius:8px;padding:11px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
+.login-error{font-size:12px;color:#f09595;margin-top:8px;display:none;}
+
+/* LAYOUT */
+.sidebar{width:220px;min-height:100vh;background:var(--dark);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100;}
+.main{margin-left:220px;flex:1;padding:2rem;min-height:100vh;}
+
+/* SIDEBAR */
+.sb-header{padding:1.5rem 1.25rem 1.25rem;border-bottom:1px solid var(--bdark);}
+.sb-logo{display:flex;align-items:center;gap:10px;margin-bottom:4px;}
+.sb-circle{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold2));display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--dark);}
+.sb-name{font-size:14px;font-weight:500;color:#fff;}
+.sb-sub{font-size:10px;color:#555;text-transform:uppercase;letter-spacing:0.05em;}
+.sb-section{padding:0.75rem 0.75rem 0.25rem;font-size:9px;color:#555;text-transform:uppercase;letter-spacing:0.1em;}
+.sb-item{display:flex;align-items:center;gap:8px;padding:8px 1rem;font-size:12px;color:#888;cursor:pointer;border-radius:6px;margin:1px 6px;border:none;background:none;width:calc(100% - 12px);text-align:left;font-family:inherit;transition:all 0.15s;}
+.sb-item:hover{color:#fff;background:var(--dark3);}
+.sb-item.active{color:var(--gold);background:rgba(200,169,110,0.1);font-weight:500;}
+.sb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.sb-footer{margin-top:auto;padding:1rem 1.25rem;border-top:1px solid var(--bdark);}
+.sb-meta{font-size:11px;color:#555;margin-bottom:4px;}
+.sb-goal{font-size:18px;font-weight:500;color:var(--gold);}
+.goal-bar{height:3px;background:var(--dark3);border-radius:2px;margin-top:6px;}
+.goal-fill{height:100%;border-radius:2px;background:var(--gold);transition:width 0.5s;}
+.logout-btn{width:100%;margin-top:10px;background:none;border:1px solid var(--bdark);color:#666;padding:6px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit;}
+
+/* PAGE */
+.page{display:none;}
+.page.active{display:block;}
+.page-header{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:1.5rem;}
+.page-title{font-size:22px;font-weight:500;letter-spacing:-0.02em;}
+.page-sub{font-size:12px;color:var(--text3);margin-top:3px;}
+
+/* CARDS */
+.card{background:#fff;border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:12px;}
+.card-label{font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:var(--text3);margin-bottom:10px;font-weight:500;display:flex;justify-content:space-between;align-items:center;}
+
+/* CLIENT CARD */
+.client-card{background:#fff;border:1px solid var(--border);border-radius:12px;overflow:hidden;cursor:pointer;transition:all 0.15s;margin-bottom:10px;}
+.client-card:hover{border-color:#aaa;box-shadow:0 2px 8px rgba(0,0,0,0.06);}
+.client-strip{height:3px;}
+.client-body{padding:1rem 1.25rem;}
+.client-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.client-name-text{font-size:14px;font-weight:500;}
+.client-tipo{font-size:11px;color:var(--text3);margin-top:2px;}
+.badge{display:inline-flex;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:500;}
+.badge-active{background:#e8f5e9;color:var(--green);}
+.badge-neg{background:#fff8e1;color:var(--amber);}
+.badge-pot{background:var(--bbg);color:var(--blue);}
+.badge-gray{background:#f1f0ec;color:#666;}
+.client-acuerdo{font-size:11px;color:var(--text2);background:var(--off);padding:3px 8px;border-radius:6px;display:inline-block;}
+
+/* CLIENT VIEW */
+.cv-header{margin-bottom:1.5rem;}
+.cv-strip{height:3px;border-radius:2px;margin-bottom:1rem;}
+.cv-name{font-size:22px;font-weight:500;margin-bottom:3px;}
+.cv-meta{font-size:12px;color:var(--text3);margin-bottom:1rem;}
+.cv-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:1.5rem;}
+.cv-tab{padding:8px 16px;font-size:13px;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;border-top:none;border-left:none;border-right:none;font-family:inherit;}
+.cv-tab.active{color:var(--text);font-weight:500;}
+.cv-view{display:none;}
+.cv-view.active{display:block;}
+
+/* METRICS */
+.metrics-grid{display:grid;gap:10px;margin-bottom:12px;}
+.metric{background:var(--off);border-radius:8px;padding:10px 12px;}
+.metric-num{font-size:22px;font-weight:500;}
+.metric-label{font-size:10px;color:var(--text3);margin-top:2px;}
+.metric-change{font-size:10px;margin-top:3px;color:var(--green);}
+
+/* GRIDS */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px;}
+
+/* CHART */
+.chart-area{background:var(--off);border-radius:8px;padding:12px;margin-bottom:12px;}
+.bars{display:flex;align-items:flex-end;gap:8px;height:80px;}
+.bar-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1;}
+.bar-el{border-radius:3px 3px 0 0;width:100%;transition:height 0.3s;}
+.bar-lbl{font-size:9px;color:var(--text3);text-align:center;line-height:1.2;}
+.bar-val{font-size:9px;font-weight:500;color:var(--text2);}
+
+/* TASKS */
+.task-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);}
+.task-row:last-child{border-bottom:none;}
+.t-check{width:16px;height:16px;border:1.5px solid var(--border);border-radius:4px;flex-shrink:0;margin-top:1px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.t-check.done{background:var(--green);border-color:var(--green);}
+.t-text{flex:1;font-size:12px;line-height:1.5;}
+.t-text.done{text-decoration:line-through;color:var(--text3);}
+.t-date{font-size:10px;color:var(--text3);white-space:nowrap;}
+.t-urgent{font-size:9px;background:#FCEBEB;color:var(--red);padding:1px 5px;border-radius:8px;}
+
+/* CONTENT ITEMS */
+.content-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+.content-row:last-child{border-bottom:none;}
+.c-type{font-size:10px;padding:1px 6px;border-radius:10px;background:var(--bbg);color:var(--blue);white-space:nowrap;}
+.c-text{font-size:12px;flex:1;line-height:1.3;}
+.c-views{font-size:11px;font-weight:500;color:var(--green);white-space:nowrap;}
+.c-pending{font-size:10px;color:var(--amber);white-space:nowrap;}
+
+/* INSPIRATION */
+.insp-item{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;}
+.insp-header{display:flex;align-items:center;gap:8px;padding:10px 12px;cursor:pointer;background:#fff;}
+.insp-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);flex-shrink:0;}
+.insp-title{font-size:12px;color:var(--text);flex:1;}
+.insp-link{font-size:10px;color:var(--blue);text-decoration:none;}
+.insp-body{padding:10px 12px;background:var(--off);border-top:1px solid var(--border);display:none;}
+.insp-body.open{display:block;}
+.insp-field{display:flex;gap:8px;margin-bottom:6px;}
+.insp-field:last-child{margin-bottom:0;}
+.insp-flabel{font-size:10px;color:var(--text3);min-width:70px;padding-top:1px;}
+.insp-fval{font-size:12px;color:var(--text);}
+
+/* CALENDAR */
+.cal-mini{background:#fff;border:1px solid var(--border);border-radius:8px;padding:12px;}
+.cal-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.cal-title-sm{font-size:12px;font-weight:500;}
+.cal-dhdr{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:3px;}
+.cal-dhdr div{font-size:9px;color:var(--text3);text-align:center;}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.c-day{min-height:26px;border-radius:3px;display:flex;flex-direction:column;align-items:center;padding:2px;}
+.c-day.other{opacity:0.3;}
+.c-day.has-task{background:var(--off);}
+.c-day.today{border:1px solid var(--gold);}
+.c-num{font-size:10px;color:var(--text);}
+.c-day.today .c-num{color:var(--gold);font-weight:500;}
+.c-dot{width:4px;height:4px;border-radius:50%;margin-top:1px;}
+
+/* UPCOMING */
+.upcoming-item{display:flex;gap:10px;align-items:flex-start;padding:7px 0;border-bottom:1px solid var(--border);}
+.upcoming-item:last-child{border-bottom:none;}
+.up-date{font-size:9px;color:var(--text3);min-width:26px;text-align:center;line-height:1.3;}
+.up-date strong{display:block;font-size:13px;font-weight:500;color:var(--text);}
+.up-text{font-size:12px;color:var(--text);flex:1;line-height:1.4;}
+
+/* ANUNCIOS */
+.anuncio-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+.anuncio-row:last-child{border-bottom:none;}
+.a-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.a-name{font-size:12px;flex:1;}
+.a-meta{font-size:10px;color:var(--text3);}
+
+/* INGRESOS */
+.ingreso-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);}
+.ingreso-row:last-child{border-bottom:none;}
+.progress-bar{height:4px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:6px;}
+.progress-fill{height:100%;border-radius:2px;background:var(--gold);}
+
+/* FORMS */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.form-grid .full{grid-column:1/-1;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+label{font-size:11px;color:var(--text2);font-weight:500;}
+input,select,textarea{width:100%;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:#fff;color:var(--text);font-family:inherit;outline:none;}
+input:focus,select:focus,textarea:focus{border-color:var(--gold);}
+textarea{resize:vertical;min-height:60px;}
+.btn-gold{background:var(--gold);color:var(--dark);border:none;padding:8px 18px;border-radius:7px;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border);padding:7px 14px;border-radius:7px;font-size:12px;cursor:pointer;font-family:inherit;}
+.btn-danger{background:transparent;color:var(--red);border:1px solid #f5c0c0;padding:4px 8px;font-size:10px;border-radius:5px;cursor:pointer;font-family:inherit;}
+.btn-sm{padding:5px 12px;font-size:11px;}
+.add-btn{font-size:10px;color:var(--text3);cursor:pointer;border:1px solid var(--border);border-radius:4px;padding:2px 8px;background:none;font-family:inherit;}
+
+/* SAVING */
+.saving{position:fixed;bottom:20px;right:20px;background:var(--dark);color:var(--gold);padding:8px 16px;border-radius:8px;font-size:12px;display:none;z-index:200;}
+
+/* SEGUIMIENTO */
+.seg-content{display:grid;grid-template-columns:1fr 280px;gap:1.25rem;}
+.client-tag{display:inline-flex;padding:1px 6px;border-radius:10px;font-size:10px;margin-right:4px;}
+.tag-boost{background:#E6F1FB;color:#185fa5;}
+.tag-org{background:#EAF3DE;color:#3B6D11;}
+.tag-res{background:#FAEEDA;color:#854F0B;}
+.tag-per{background:#F1EFE8;color:#5F5E5A;}
+</style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">SL</div>
+    <div class="login-title">Centro de Operaciones</div>
+    <div class="login-sub">Segundo Libertini · Acceso privado</div>
+    <input class="login-input" type="password" id="login-pass" placeholder="Contraseña" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-error" id="login-error">Contraseña incorrecta</div>
+  </div>
+</div>
+
+<div class="saving" id="saving">Guardando...</div>
+
+<div class="sidebar" id="sidebar" style="display:none;">
+  <div class="sb-header">
+    <div class="sb-logo"><div class="sb-circle">SL</div><div class="sb-name">Segundo Libertini</div></div>
+    <div class="sb-sub">Centro de operaciones</div>
+  </div>
+  <div class="sb-section">Clientes</div>
+  <button class="sb-item" onclick="showClient('personal',this)"><div class="sb-dot" style="background:var(--gold);"></div>Personal</button>
+  <button class="sb-item" onclick="showClient('boost',this)"><div class="sb-dot" style="background:#185fa5;"></div>Boost My Rental</button>
+  <button class="sb-item" onclick="showClient('organica',this)"><div class="sb-dot" style="background:#2d7a4f;"></div>Orgánica</button>
+  <button class="sb-item" onclick="showClient('respira',this)"><div class="sb-dot" style="background:#8a5a0a;"></div>Respira</button>
+  <div class="sb-section">General</div>
+  <button class="sb-item active" onclick="showPage('seguimiento',this)"><i class="ti ti-layout-kanban" style="font-size:14px;width:16px;text-align:center;" aria-hidden="true"></i>Seguimiento</button>
+  <button class="sb-item" onclick="showPage('ingresos',this)"><i class="ti ti-chart-bar" style="font-size:14px;width:16px;text-align:center;" aria-hidden="true"></i>Ingresos</button>
+  <button class="sb-item" onclick="showPage('proceso',this)"><i class="ti ti-zap" style="font-size:14px;width:16px;text-align:center;" aria-hidden="true"></i>Mi proceso</button>
+  <div class="sb-footer">
+    <div class="sb-meta">Meta mensual</div>
+    <div class="sb-goal" id="sb-goal">0€ / 3.000€</div>
+    <div class="goal-bar"><div class="goal-fill" id="sb-bar" style="width:0%"></div></div>
+    <button class="logout-btn" onclick="doLogout()">Cerrar sesión</button>
+  </div>
+</div>
+
+<div class="main" id="main" style="display:none;">
+
+<!-- SEGUIMIENTO -->
+<div id="page-seguimiento" class="page active">
+  <div class="page-header">
+    <div><div class="page-title">Seguimiento</div><div class="page-sub">Todas las acciones y pendientes</div></div>
+    <button class="btn-gold btn-sm" onclick="openAddTask('all')">+ Nueva tarea</button>
+  </div>
+  <div class="seg-content">
+    <div>
+      <div class="card">
+        <div class="card-label">Próximos 7 días</div>
+        <div id="seg-proximas"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Recurrentes</div>
+        <div id="seg-recurrentes"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Completadas recientemente</div>
+        <div id="seg-completadas"></div>
+      </div>
+    </div>
+    <div>
+      <div id="seg-calendar"></div>
+      <div class="cal-mini" style="margin-top:10px;">
+        <div class="card-label">Próximas acciones</div>
+        <div id="seg-upcoming"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- INGRESOS -->
+<div id="page-ingresos" class="page">
+  <div class="page-header"><div><div class="page-title">Ingresos</div><div class="page-sub">Meta: 3.000€ / mes</div></div></div>
+  <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);" id="ing-stats"></div>
+  <div class="card">
+    <div class="card-label">Registrar ingreso</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Cliente</label><select id="i-cli"><option value="boost">Boost My Rental</option><option value="organica">Orgánica</option><option value="respira">Respira</option><option value="personal">Personal</option></select></div>
+      <div class="form-group"><label>Mes</label><input type="month" id="i-mes"/></div>
+      <div class="form-group"><label>Monto</label><input type="number" id="i-monto" placeholder="0"/></div>
+      <div class="form-group"><label>Moneda</label><select id="i-mon"><option value="EUR">EUR €</option><option value="USD">USD $</option></select></div>
+      <div class="form-group full"><label>Notas</label><input id="i-notas" placeholder="Ej: 33% dividendos mayo"/></div>
+    </div>
+    <button class="btn-gold" onclick="guardarIngreso()">Registrar</button>
+  </div>
+  <div class="card"><div class="card-label">Historial</div><div id="ing-list"></div></div>
+</div>
+
+<!-- PROCESO -->
+<div id="page-proceso" class="page">
+  <div class="page-header"><div><div class="page-title">Mi proceso</div><div class="page-sub">El método que genera resultados</div></div></div>
+  <div class="card" style="background:var(--dark);border-color:rgba(200,169,110,0.2);">
+    <div style="font-size:16px;font-weight:500;color:var(--gold);margin-bottom:6px;">Piezas + formato correcto + repetir</div>
+    <div style="font-size:13px;color:#888;line-height:1.7;">6M de views en un mes. 6.000 seguidores en 2 meses. El algoritmo premia la repetición.</div>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:8px;">
+    <div style="border-left:3px solid var(--gold);padding:12px 16px;background:#fff;border-radius:0 8px 8px 0;border:1px solid var(--border);"><div style="font-size:13px;font-weight:500;margin-bottom:4px;">01 — Inspiración</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">Buscar reels virales. Guardar links con hooks, formato y análisis de por qué funciona.</div></div>
+    <div style="border-left:3px solid #aaa;padding:12px 16px;background:#fff;border-radius:0 8px 8px 0;border:1px solid var(--border);"><div style="font-size:13px;font-weight:500;margin-bottom:4px;">02 — Tomas propias</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">Material visual del cliente. Footage existente o grabación nueva.</div></div>
+    <div style="border-left:3px solid var(--gold);padding:12px 16px;background:#fff;border-radius:0 8px 8px 0;border:1px solid var(--border);"><div style="font-size:13px;font-weight:500;margin-bottom:4px;">03 — Edición</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">Grabar pantalla del reel viral. Extraer audio con segundos exactos. Combinar en CapCut. El secreto: música + imagen coherentes.</div></div>
+    <div style="border-left:3px solid #aaa;padding:12px 16px;background:#fff;border-radius:0 8px 8px 0;border:1px solid var(--border);"><div style="font-size:13px;font-weight:500;margin-bottom:4px;">04 — Copy con IA</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">Hook según el dolor de la audiencia. Copy adaptado al cliente ideal.</div></div>
+    <div style="border-left:3px solid var(--gold);padding:12px 16px;background:#fff;border-radius:0 8px 8px 0;border:1px solid var(--border);"><div style="font-size:13px;font-weight:500;margin-bottom:4px;">05 — Publicar → Analizar → Repetir</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">2-3 reels de prueba diarios para testear. Registrar métricas. Repetir lo que funciona.</div></div>
+  </div>
+</div>
+
+<!-- CLIENT VIEW -->
+<div id="page-client" class="page">
+  <div class="cv-header">
+    <div class="cv-strip" id="cv-strip"></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div><div class="cv-name" id="cv-name"></div><div class="cv-meta" id="cv-meta"></div></div>
+      <span class="badge" id="cv-badge"></span>
+    </div>
+    <div class="cv-tabs">
+      <button class="cv-tab active" onclick="showCVTab('resumen',this)">Resumen</button>
+      <button class="cv-tab" onclick="showCVTab('tareas',this)">Tareas</button>
+      <button class="cv-tab" onclick="showCVTab('contenido',this)">Contenido</button>
+      <button class="cv-tab" onclick="showCVTab('anuncios',this)">Anuncios</button>
+      <button class="cv-tab" onclick="showCVTab('ingresos_c',this)">Ingresos</button>
+    </div>
+  </div>
+
+  <!-- RESUMEN -->
+  <div id="cv-resumen" class="cv-view active">
+    <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);" id="cv-metrics"></div>
+    <div class="grid2">
+      <div class="card"><div class="card-label">Objetivos</div><div id="cv-objetivos"></div></div>
+      <div class="card"><div class="card-label">Acuerdo</div><div id="cv-acuerdo"></div></div>
+    </div>
+    <div class="card"><div class="card-label">Próximas tareas</div><div id="cv-proximas"></div></div>
+  </div>
+
+  <!-- TAREAS -->
+  <div id="cv-tareas" class="cv-view">
+    <div class="grid2">
+      <div>
+        <div class="card">
+          <div class="card-label">Pendientes <button class="add-btn" onclick="openAddTask(currentClient)">+ agregar</button></div>
+          <div id="cv-tareas-list"></div>
+        </div>
+        <div class="card">
+          <div class="card-label">Recurrentes <button class="add-btn" onclick="openAddTask(currentClient,'recurrente')">+ agregar</button></div>
+          <div id="cv-recurrentes-list"></div>
+        </div>
+      </div>
+      <div>
+        <div id="cv-cal-mini"></div>
+        <div class="cal-mini" style="margin-top:10px;">
+          <div class="card-label">Próximas</div>
+          <div id="cv-upcoming-tasks"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTENIDO -->
+  <div id="cv-contenido" class="cv-view">
+    <div class="metrics-grid" style="grid-template-columns:repeat(4,1fr);" id="cv-cont-metrics"></div>
+    <div class="card">
+      <div class="card-label">Views por pieza</div>
+      <div class="chart-area"><div class="bars" id="cv-chart"></div></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="card-label">Publicado <button class="add-btn" onclick="openAddContent()">+ agregar</button></div>
+        <div id="cv-publicado"></div>
+      </div>
+      <div class="card">
+        <div class="card-label">Pendiente publicar</div>
+        <div id="cv-pendiente"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label">Inspiración <button class="add-btn" onclick="openAddInsp()">+ link</button></div>
+      <div id="cv-insp"></div>
+    </div>
+  </div>
+
+  <!-- ANUNCIOS -->
+  <div id="cv-anuncios" class="cv-view">
+    <div class="card">
+      <div class="card-label">Campañas activas <button class="add-btn" onclick="openAddAnuncio()">+ agregar</button></div>
+      <div id="cv-anuncios-list"></div>
+    </div>
+    <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);" id="cv-anuncios-metrics"></div>
+  </div>
+
+  <!-- INGRESOS CLIENTE -->
+  <div id="cv-ingresos_c" class="cv-view">
+    <div class="metrics-grid" style="grid-template-columns:repeat(3,1fr);" id="cv-ing-metrics"></div>
+    <div class="card">
+      <div class="card-label">Historial <button class="add-btn" onclick="openAddIngreso()">+ registrar</button></div>
+      <div id="cv-ing-list"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- main -->
+
+<!-- MODALS -->
+<div id="modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:500;display:none;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:1.5rem;width:420px;max-width:90vw;">
+    <div style="font-size:15px;font-weight:500;margin-bottom:1rem;" id="modal-title">Nueva tarea</div>
+    <div id="modal-body"></div>
+    <div style="display:flex;gap:8px;margin-top:1rem;">
+      <button class="btn-gold" id="modal-save">Guardar</button>
+      <button class="btn-outline" onclick="closeModal()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPA_URL='https://uhwlxhviloqdkvxiincb.supabase.co';
+const SUPA_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVod2x4aHZpbG9xZGt2eGlpbmNiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1NzU1MjMsImV4cCI6MjA5NDE1MTUyM30.I9m1IwUZ1exxhZEZ-V2cR3EDTWNk4b2aegIeKsEOQQ4';
+const sb=supabase.createClient(SUPA_URL,SUPA_KEY);
+const PASS='Segundo2026';
+const DB_KEY='sl-os-v4';
+
+const CLIENTS={
+  boost:{name:'Boost My Rental',tipo:'Gestión Airbnb',contacto:'Mariano Larrache',acuerdo:'33% dividendos',estado:'activo',color:'#185fa5',meta:'7-8 propiedades · $2.000 netos',revision:'Agosto 2026'},
+  organica:{name:'Orgánica',tipo:'Cosmética natural',contacto:'Alejandra',acuerdo:'20% ventas digitales',estado:'negociacion',color:'#2d7a4f',meta:'Ventas digitales activas',revision:'Mes 3'},
+  respira:{name:'Respira',tipo:'Breathwork · Formaciones',contacto:'Bryan',acuerdo:'Fee + 15% ventas',estado:'negociacion',color:'#8a5a0a',meta:'Contenido orgánico activo',revision:'Por definir'},
+  personal:{name:'Mi cuenta personal',tipo:'Marca personal',contacto:'Segundo',acuerdo:'100% mío',estado:'activo',color:'#c8a96e',meta:'100K seguidores · YouTube',revision:'—'},
+};
+
+let D={tareas:[],ingresos:[],contenido:[],inspiracion:[],anuncios:[]};
+let currentClient='boost';
+let currentPage='seguimiento';
+
+function cLabel(c){return CLIENTS[c]?.name||c;}
+function fmtN(n){if(!n)return'0';if(n>=1000000)return(n/1000000).toFixed(1)+'M';if(n>=1000)return(n/1000).toFixed(1)+'K';return n.toString();}
+function today(){return new Date().toISOString().split('T')[0];}
+function estadoBadge(e){return{activo:'badge-active',negociacion:'badge-neg',potencial:'badge-pot'}[e]||'badge-gray';}
+function estadoLabel(e){return{activo:'Activo',negociacion:'En negociación',potencial:'Potencial',pausado:'Pausado'}[e]||e;}
+
+function doLogin(){
+  const p=document.getElementById('login-pass').value;
+  if(p===PASS){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('sidebar').style.display='flex';
+    document.getElementById('main').style.display='block';
+    loadData();
+  } else {
+    document.getElementById('login-error').style.display='block';
+  }
+}
+
+function doLogout(){
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('sidebar').style.display='none';
+  document.getElementById('main').style.display='none';
+}
+
+async function loadData(){
+  try{
+    const{data}=await sb.from('dashboard_data').select('*').eq('id',DB_KEY).single();
+    if(data?.payload){const p=data.payload;D.tareas=p.tareas||[];D.ingresos=p.ingresos||[];D.contenido=p.contenido||[];D.inspiracion=p.inspiracion||[];D.anuncios=p.anuncios||[];}
+  }catch(e){}
+  initDefaults();
+  setDates();
+  renderAll();
+}
+
+async function save(){
+  document.getElementById('saving').style.display='block';
+  const payload={tareas:D.tareas,ingresos:D.ingresos,contenido:D.contenido,inspiracion:D.inspiracion,anuncios:D.anuncios};
+  try{
+    const{data}=await sb.from('dashboard_data').select('id').eq('id',DB_KEY).single();
+    if(data)await sb.from('dashboard_data').update({payload,updated_at:new Date().toISOString()}).eq('id',DB_KEY);
+    else await sb.from('dashboard_data').insert({id:DB_KEY,payload});
+  }catch(e){await sb.from('dashboard_data').insert({id:DB_KEY,payload:{tareas:D.tareas,ingresos:D.ingresos,contenido:D.contenido,inspiracion:D.inspiracion,anuncios:D.anuncios}});}
+  setTimeout(()=>document.getElementById('saving').style.display='none',800);
+}
+
+function initDefaults(){
+  if(!D.tareas.length){
+    D.tareas=[
+      {id:1,cliente:'boost',texto:'Grabación videos con Juana y Mariano',tipo:'puntual',done:false,fecha:'2026-05-20'},
+      {id:2,cliente:'boost',texto:'Subir post #2 — carrusel Graciela',tipo:'puntual',done:false,fecha:'2026-05-21'},
+      {id:3,cliente:'boost',texto:'Cerrar acuerdo 33% con Mariano',tipo:'puntual',done:false,fecha:'2026-05-22'},
+      {id:4,cliente:'boost',texto:'3 posts semanales',tipo:'recurrente',done:false,fecha:''},
+      {id:5,cliente:'boost',texto:'Revisar métricas anuncios',tipo:'recurrente',done:false,fecha:''},
+      {id:6,cliente:'organica',texto:'Resolver carrito Wix',tipo:'puntual',done:false,fecha:'2026-05-22'},
+      {id:7,cliente:'organica',texto:'Armar landing Camino de Santiago',tipo:'puntual',done:false,fecha:'2026-05-23'},
+      {id:8,cliente:'respira',texto:'Reunión con Bryan — propuesta',tipo:'puntual',done:false,fecha:'2026-05-26'},
+      {id:9,cliente:'personal',texto:'Publicar video Camino de Santiago',tipo:'puntual',done:false,fecha:'2026-05-25'},
+    ];
+  }
+  if(!D.contenido.length){
+    D.contenido=[
+      {id:1,cliente:'boost',tipo:'Reel',hook:'¿Y si rompen algo en tu depto?',estado:'publicado',vistas:1900,fecha:'2026-05-10'},
+      {id:2,cliente:'boost',tipo:'Carrusel',hook:'5 preguntas frecuentes propietarios',estado:'publicado',vistas:420,fecha:'2026-05-12'},
+      {id:3,cliente:'boost',tipo:'Carrusel',hook:'231 USD en un fin de semana',estado:'publicado',vistas:310,fecha:'2026-05-13'},
+      {id:4,cliente:'boost',tipo:'Video',hook:'Mariano llegando al edificio — inversor',estado:'pendiente',vistas:0,fecha:'2026-05-20'},
+    ];
+  }
+}
+
+function setDates(){
+  const t=today();
+  ['i-mes'].forEach(id=>{const el=document.getElementById(id);if(el)el.value=t.slice(0,7);});
+}
+
+function renderAll(){
+  renderSeguimiento();
+  renderIngresos();
+  updateSidebar();
+}
+
+function updateSidebar(){
+  const mes=today().slice(0,7);
+  const eur=D.ingresos.filter(i=>i.mes===mes&&i.moneda==='EUR').reduce((s,i)=>s+i.monto,0);
+  const pct=Math.min(100,Math.round(eur/3000*100));
+  document.getElementById('sb-goal').textContent=eur.toFixed(0)+'€ / 3.000€';
+  document.getElementById('sb-bar').style.width=pct+'%';
+}
+
+function showPage(p,btn){
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  if(btn)btn.classList.add('active');
+  currentPage=p;
+  if(p==='seguimiento')renderSeguimiento();
+  if(p==='ingresos')renderIngresos();
+}
+
+function showClient(c,btn){
+  currentClient=c;
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-client').classList.add('active');
+  if(btn)btn.classList.add('active');
+  renderClientView();
+  showCVTab('resumen',document.querySelector('.cv-tab'));
+}
+
+function showCVTab(tab,btn){
+  document.querySelectorAll('.cv-view').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.cv-tab').forEach(x=>x.classList.remove('active'));
+  document.getElementById('cv-'+tab).classList.add('active');
+  if(btn)btn.classList.add('active');
+  if(tab==='contenido')renderContenido();
+  if(tab==='tareas')renderClientTareas();
+  if(tab==='anuncios')renderClientAnuncios();
+  if(tab==='ingresos_c')renderClientIngresos();
+}
+
+function renderClientView(){
+  const c=CLIENTS[currentClient];
+  document.getElementById('cv-strip').style.background=c.color;
+  document.getElementById('cv-strip').style.borderRadius='2px';
+  document.getElementById('cv-name').textContent=c.name;
+  document.getElementById('cv-meta').textContent=c.tipo+' · '+c.contacto+' · '+c.acuerdo;
+  const badge=document.getElementById('cv-badge');
+  badge.className='badge '+estadoBadge(c.estado);
+  badge.textContent=estadoLabel(c.estado);
+  renderClientResumen();
+}
+
+function renderClientResumen(){
+  const c=currentClient;
+  const cont=D.contenido.filter(x=>x.cliente===c&&x.estado==='publicado');
+  const totalViews=cont.reduce((s,x)=>s+x.vistas,0);
+  const tareasPend=D.tareas.filter(x=>x.cliente===c&&!x.done&&x.tipo==='puntual').length;
+  const ingMes=D.ingresos.filter(i=>i.cliente===c&&i.mes===today().slice(0,7)).reduce((s,i)=>s+(i.moneda==='EUR'?i.monto:i.monto*0.92),0);
+
+  document.getElementById('cv-metrics').innerHTML=`
+    <div class="metric"><div class="metric-num">${cont.length}</div><div class="metric-label">Piezas publicadas</div></div>
+    <div class="metric"><div class="metric-num">${fmtN(totalViews)}</div><div class="metric-label">Views totales</div></div>
+    <div class="metric"><div class="metric-num">${tareasPend}</div><div class="metric-label">Tareas pendientes</div></div>
+    <div class="metric"><div class="metric-num">${ingMes.toFixed(0)}€</div><div class="metric-label">Ingreso este mes</div></div>`;
+
+  const cl=CLIENTS[c];
+  document.getElementById('cv-objetivos').innerHTML=`
+    <div style="font-size:12px;color:var(--text2);margin-bottom:8px;">${cl.meta}</div>
+    <div style="font-size:11px;color:var(--text3);">Revisión: ${cl.revision}</div>`;
+
+  document.getElementById('cv-acuerdo').innerHTML=`
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span style="font-size:12px;color:var(--text2);">Acuerdo</span><span style="font-size:12px;font-weight:500;">${cl.acuerdo}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);"><span style="font-size:12px;color:var(--text2);">Contacto</span><span style="font-size:12px;font-weight:500;">${cl.contacto}</span></div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;"><span style="font-size:12px;color:var(--text2);">Estado</span><span class="badge ${estadoBadge(cl.estado)}">${estadoLabel(cl.estado)}</span></div>`;
+
+  const proximas=D.tareas.filter(x=>x.cliente===c&&!x.done&&x.tipo==='puntual').slice(0,4);
+  document.getElementById('cv-proximas').innerHTML=proximas.length?proximas.map(t=>`
+    <div class="task-row">
+      <div class="t-check ${t.done?'done':''}" onclick="toggleTask(${t.id})">${t.done?'✓':''}</div>
+      <div class="t-text">${t.texto}</div>
+      <div class="t-date">${t.fecha||''}</div>
+    </div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin tareas pendientes</div>';
+}
+
+function renderClientTareas(){
+  const c=currentClient;
+  const pend=D.tareas.filter(x=>x.cliente===c&&!x.done&&x.tipo==='puntual');
+  const rec=D.tareas.filter(x=>x.cliente===c&&x.tipo==='recurrente');
+
+  document.getElementById('cv-tareas-list').innerHTML=pend.length?pend.map(t=>`
+    <div class="task-row">
+      <div class="t-check" onclick="toggleTask(${t.id})"></div>
+      <div class="t-text">${t.texto}</div>
+      <div style="display:flex;gap:6px;align-items:center;">
+        ${t.fecha?`<div class="t-date">${t.fecha}</div>`:''}
+        <button class="btn-danger" onclick="deleteTask(${t.id})">×</button>
+      </div>
+    </div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin pendientes</div>';
+
+  document.getElementById('cv-recurrentes-list').innerHTML=rec.length?rec.map(t=>`
+    <div class="task-row">
+      <div class="t-check ${t.done?'done':''}" onclick="toggleTask(${t.id})">${t.done?'✓':''}</div>
+      <div class="t-text ${t.done?'done':''}">${t.texto}</div>
+      <button class="btn-danger" onclick="deleteTask(${t.id})">×</button>
+    </div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin recurrentes</div>';
+
+  renderCalMini('cv-cal-mini',c);
+  const upcoming=pend.filter(t=>t.fecha).sort((a,b)=>a.fecha.localeCompare(b.fecha)).slice(0,5);
+  document.getElementById('cv-upcoming-tasks').innerHTML=upcoming.map(t=>`
+    <div class="upcoming-item">
+      <div class="up-date"><strong>${t.fecha.split('-')[2]}</strong>${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][parseInt(t.fecha.split('-')[1])-1]}</div>
+      <div class="up-text">${t.texto}</div>
+    </div>`).join('')||'<div style="font-size:12px;color:var(--text3);">Sin próximas fechas</div>';
+}
+
+function renderContenido(){
+  const c=currentClient;
+  const pub=D.contenido.filter(x=>x.cliente===c&&x.estado==='publicado');
+  const pend=D.contenido.filter(x=>x.cliente===c&&x.estado==='pendiente');
+  const insp=D.inspiracion.filter(x=>x.cliente===c);
+  const totalViews=pub.reduce((s,x)=>s+x.vistas,0);
+  const maxViews=Math.max(...pub.map(x=>x.vistas),1);
+
+  document.getElementById('cv-cont-metrics').innerHTML=`
+    <div class="metric"><div class="metric-num">${pub.length}</div><div class="metric-label">Publicadas</div></div>
+    <div class="metric"><div class="metric-num">${fmtN(totalViews)}</div><div class="metric-label">Views totales</div></div>
+    <div class="metric"><div class="metric-num">${pend.length}</div><div class="metric-label">Pendientes grabar</div></div>
+    <div class="metric"><div class="metric-num">${insp.length}</div><div class="metric-label">Referencias guardadas</div></div>`;
+
+  const color=CLIENTS[c].color;
+  document.getElementById('cv-chart').innerHTML=pub.slice(0,6).map(p=>`
+    <div class="bar-wrap">
+      <div class="bar-val">${fmtN(p.vistas)}</div>
+      <div class="bar-el" style="height:${Math.round(p.vistas/maxViews*100)}%;background:${color};min-height:4px;"></div>
+      <div class="bar-lbl">${p.hook.slice(0,12)}${p.hook.length>12?'...':''}</div>
+    </div>`).join('')||'<div style="font-size:12px;color:var(--text3);">Sin piezas publicadas</div>';
+
+  const showAll=pub.length>3;
+  document.getElementById('cv-publicado').innerHTML=`
+    ${pub.slice(0,3).map(p=>`<div class="content-row"><span class="c-type">${p.tipo}</span><div class="c-text">${p.hook}</div><div class="c-views">${fmtN(p.vistas)}</div></div>`).join('')}
+    ${showAll?`<div style="text-align:center;margin-top:8px;"><button class="btn-outline btn-sm" onclick="showAllContent()">Ver todas (${pub.length})</button></div>`:''}`;
+
+  document.getElementById('cv-pendiente').innerHTML=pend.length?pend.map(p=>`
+    <div class="content-row"><span class="c-type">${p.tipo}</span><div class="c-text">${p.hook}</div><div class="c-pending">${p.fecha||'Pendiente'}</div></div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin pendientes</div>';
+
+  document.getElementById('cv-insp').innerHTML=insp.length?insp.map(i=>`
+    <div class="insp-item" id="insp-${i.id}">
+      <div class="insp-header" onclick="toggleInsp(${i.id})">
+        <div class="insp-dot"></div>
+        <div class="insp-title">${i.hook||i.link}</div>
+        <a href="${i.link}" target="_blank" class="insp-link" onclick="event.stopPropagation()">ver ↗</a>
+      </div>
+      <div class="insp-body" id="insp-body-${i.id}">
+        <div class="insp-field"><div class="insp-flabel">Hook</div><div class="insp-fval">${i.hook||'—'}</div></div>
+        <div class="insp-field"><div class="insp-flabel">Formato</div><div class="insp-fval">${i.formato||'—'}</div></div>
+        <div class="insp-field"><div class="insp-flabel">Por qué funciona</div><div class="insp-fval">${i.porque||'—'}</div></div>
+        <div class="insp-field"><div class="insp-flabel">Views aprox.</div><div class="insp-fval">${i.views?fmtN(i.views):'—'}</div></div>
+        <div style="margin-top:8px;"><button class="btn-danger" onclick="deleteInsp(${i.id})">Eliminar</button></div>
+      </div>
+    </div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin referencias guardadas</div>';
+}
+
+function toggleInsp(id){
+  const body=document.getElementById('insp-body-'+id);
+  body.classList.toggle('open');
+}
+
+function showAllContent(){
+  const c=currentClient;
+  const pub=D.contenido.filter(x=>x.cliente===c&&x.estado==='publicado');
+  document.getElementById('cv-publicado').innerHTML=pub.map(p=>`
+    <div class="content-row"><span class="c-type">${p.tipo}</span><div class="c-text">${p.hook}</div><div class="c-views">${fmtN(p.vistas)}</div></div>`).join('');
+}
+
+function renderClientAnuncios(){
+  const c=currentClient;
+  const anuncios=D.anuncios.filter(x=>x.cliente===c);
+  const activos=anuncios.filter(x=>x.estado==='activa');
+  const totalGasto=anuncios.reduce((s,x)=>s+x.gastado,0);
+  const totalLeads=anuncios.reduce((s,x)=>s+x.leads,0);
+
+  document.getElementById('cv-anuncios-list').innerHTML=anuncios.length?anuncios.map(a=>`
+    <div class="anuncio-row">
+      <div class="a-dot" style="background:${'activa'===a.estado?'#2d7a4f':'#9a9a9a'};"></div>
+      <div class="a-name">${a.nombre}</div>
+      <div class="a-meta">$${a.presupuesto}/día · ${a.inicio||''}${a.fin?' → '+a.fin:''}</div>
+      <button class="btn-danger" onclick="deleteAnuncio(${a.id})">×</button>
+    </div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin campañas</div>';
+
+  document.getElementById('cv-anuncios-metrics').innerHTML=`
+    <div class="metric"><div class="metric-num">${activos.length}</div><div class="metric-label">Campañas activas</div></div>
+    <div class="metric"><div class="metric-num">$${totalGasto}</div><div class="metric-label">Total gastado</div></div>
+    <div class="metric"><div class="metric-num">${totalLeads}</div><div class="metric-label">Leads recibidos</div></div>`;
+}
+
+function renderClientIngresos(){
+  const c=currentClient;
+  const ing=D.ingresos.filter(x=>x.cliente===c);
+  const mes=today().slice(0,7);
+  const mesMonto=ing.filter(i=>i.mes===mes).reduce((s,i)=>s+i.monto,0);
+  const total=ing.reduce((s,i)=>s+i.monto,0);
+
+  document.getElementById('cv-ing-metrics').innerHTML=`
+    <div class="metric"><div class="metric-num">${mesMonto.toFixed(0)}</div><div class="metric-label">Este mes</div></div>
+    <div class="metric"><div class="metric-num">${total.toFixed(0)}</div><div class="metric-label">Total histórico</div></div>
+    <div class="metric"><div class="metric-num">${ing.length}</div><div class="metric-label">Registros</div></div>`;
+
+  document.getElementById('cv-ing-list').innerHTML=ing.slice().reverse().map(i=>`
+    <div class="ingreso-row">
+      <div><div style="font-size:13px;font-weight:500;">${i.mes}</div>${i.notas?`<div style="font-size:11px;color:var(--text3);">${i.notas}</div>`:''}</div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:14px;font-weight:500;color:var(--green);">${i.moneda==='EUR'?'€':'$'}${i.monto}</span><button class="btn-danger" onclick="deleteIngreso(${i.id})">×</button></div>
+    </div>`).join('')||'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin ingresos registrados</div>';
+}
+
+function renderCalMini(elId,clientFilter){
+  const now=new Date();
+  const y=now.getFullYear(),m=now.getMonth();
+  const meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const firstDay=new Date(y,m,1).getDay();
+  const offset=firstDay===0?6:firstDay-1;
+  const days=new Date(y,m+1,0).getDate();
+  const tareasFecha=D.tareas.filter(t=>(!clientFilter||t.cliente===clientFilter)&&t.fecha&&t.fecha.startsWith(`${y}-${String(m+1).padStart(2,'0')}`));
+  const daysWithTasks=new Set(tareasFecha.map(t=>parseInt(t.fecha.split('-')[2])));
+  const color=clientFilter?CLIENTS[clientFilter]?.color:'var(--gold)';
+
+  let html=`<div class="cal-mini"><div class="cal-hdr"><div class="cal-title-sm">${meses[m]} ${y}</div></div>
+    <div class="cal-dhdr"><div>L</div><div>M</div><div>X</div><div>J</div><div>V</div><div>S</div><div>D</div></div>
+    <div class="cal-grid">`;
+  for(let i=0;i<offset;i++)html+=`<div class="c-day other"></div>`;
+  for(let d=1;d<=days;d++){
+    const isToday=now.getDate()===d;
+    const hasTask=daysWithTasks.has(d);
+    html+=`<div class="c-day ${isToday?'today':''} ${hasTask?'has-task':''}">
+      <div class="c-num">${d}</div>
+      ${hasTask?`<div class="c-dot" style="background:${color};"></div>`:''}
+    </div>`;
+  }
+  html+='</div></div>';
+  document.getElementById(elId).innerHTML=html;
+}
+
+function renderSeguimiento(){
+  const todas=D.tareas.filter(t=>!t.done&&t.tipo==='puntual').sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||''));
+  const rec=D.tareas.filter(t=>t.tipo==='recurrente');
+  const comp=D.tareas.filter(t=>t.done).slice(-5);
+
+  const tagMap={boost:'tag-boost',organica:'tag-org',respira:'tag-res',personal:'tag-per'};
+
+  document.getElementById('seg-proximas').innerHTML=todas.length?todas.map(t=>`
+    <div class="task-row">
+      <div class="t-check" onclick="toggleTask(${t.id})"></div>
+      <div class="t-text">${t.texto}<div style="margin-top:3px;"><span class="client-tag ${tagMap[t.cliente]||''}">${cLabel(t.cliente)}</span>${t.fecha?`<span style="font-size:10px;color:var(--text3);">${t.fecha}</span>`:''}</div></div>
+    </div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin pendientes. ¡Todo al día!</div>';
+
+  document.getElementById('seg-recurrentes').innerHTML=rec.length?rec.map(t=>`
+    <div class="task-row">
+      <div class="t-check ${t.done?'done':''}" onclick="toggleTask(${t.id})">${t.done?'✓':''}</div>
+      <div class="t-text ${t.done?'done':''}">${t.texto}<div style="margin-top:2px;"><span class="client-tag ${tagMap[t.cliente]||''}">${cLabel(t.cliente)}</span></div></div>
+    </div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin recurrentes</div>';
+
+  document.getElementById('seg-completadas').innerHTML=comp.length?comp.map(t=>`
+    <div class="task-row">
+      <div class="t-check done">✓</div>
+      <div class="t-text done">${t.texto}</div>
+    </div>`).join(''):'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin completadas</div>';
+
+  renderCalMini('seg-calendar',null);
+
+  const upcoming=todas.filter(t=>t.fecha).slice(0,5);
+  const tagClassMap={boost:'tag-boost',organica:'tag-org',respira:'tag-res',personal:'tag-per'};
+  document.getElementById('seg-upcoming').innerHTML=upcoming.map(t=>`
+    <div class="upcoming-item">
+      <div class="up-date"><strong>${t.fecha.split('-')[2]}</strong>${['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][parseInt(t.fecha.split('-')[1])-1]}</div>
+      <div><div class="up-text">${t.texto}</div><span class="client-tag ${tagClassMap[t.cliente]||''}">${cLabel(t.cliente)}</span></div>
+    </div>`).join('')||'<div style="font-size:12px;color:var(--text3);">Sin fechas próximas</div>';
+}
+
+function renderIngresos(){
+  const mes=today().slice(0,7);
+  const eur=D.ingresos.filter(i=>i.moneda==='EUR').reduce((s,i)=>s+i.monto,0);
+  const usd=D.ingresos.filter(i=>i.moneda==='USD').reduce((s,i)=>s+i.monto,0);
+  const eurMes=D.ingresos.filter(i=>i.mes===mes&&i.moneda==='EUR').reduce((s,i)=>s+i.monto,0);
+  const pct=Math.min(100,Math.round(eurMes/3000*100));
+
+  document.getElementById('ing-stats').innerHTML=`
+    <div class="metric" style="background:var(--dark);border:1px solid rgba(200,169,110,0.2);">
+      <div class="metric-num" style="color:var(--gold);">${eurMes.toFixed(0)}€</div>
+      <div class="metric-label" style="color:#666;">Este mes</div>
+      <div class="progress-bar" style="margin-top:8px;"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>
+    <div class="metric"><div class="metric-num">${eur.toFixed(0)}€</div><div class="metric-label">Total EUR</div></div>
+    <div class="metric"><div class="metric-num">$${usd.toFixed(0)}</div><div class="metric-label">Total USD</div></div>`;
+
+  document.getElementById('ing-list').innerHTML=D.ingresos.slice().reverse().map(i=>`
+    <div class="ingreso-row">
+      <div><div style="font-size:13px;font-weight:500;">${cLabel(i.cliente)}</div><div style="font-size:11px;color:var(--text3);">${i.mes}${i.notas?' · '+i.notas:''}</div></div>
+      <div style="display:flex;align-items:center;gap:8px;"><span style="font-size:14px;font-weight:500;color:var(--green);">${i.moneda==='EUR'?'€':'$'}${i.monto}</span><button class="btn-danger" onclick="deleteIngreso(${i.id})">×</button></div>
+    </div>`).join('')||'<div style="font-size:12px;color:var(--text3);padding:8px 0;">Sin ingresos registrados</div>';
+
+  updateSidebar();
+}
+
+// TOGGLE & DELETE
+async function toggleTask(id){
+  const t=D.tareas.find(x=>x.id===id);
+  if(t){t.done=!t.done;await save();renderAll();if(currentPage==='client'){renderClientView();showCVTab(document.querySelector('.cv-tab.active')?.textContent?.toLowerCase().trim()||'resumen',document.querySelector('.cv-tab.active'));}}
+}
+
+async function deleteTask(id){D.tareas=D.tareas.filter(t=>t.id!==id);await save();renderAll();renderClientTareas();}
+async function deleteIngreso(id){D.ingresos=D.ingresos.filter(i=>i.id!==id);await save();renderIngresos();if(currentPage==='client')renderClientIngresos();}
+async function deleteAnuncio(id){D.anuncios=D.anuncios.filter(a=>a.id!==id);await save();renderClientAnuncios();}
+async function deleteInsp(id){D.inspiracion=D.inspiracion.filter(i=>i.id!==id);await save();renderContenido();}
+
+// GUARDAR INGRESO GENERAL
+async function guardarIngreso(){
+  const monto=parseFloat(document.getElementById('i-monto').value);
+  if(!monto)return;
+  D.ingresos.push({id:Date.now(),cliente:document.getElementById('i-cli').value,mes:document.getElementById('i-mes').value,monto,moneda:document.getElementById('i-mon').value,notas:document.getElementById('i-notas').value});
+  await save();renderIngresos();
+  document.getElementById('i-monto').value='';document.getElementById('i-notas').value='';
+}
+
+// MODALS
+function openModal(title,bodyHTML,saveFn){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=bodyHTML;
+  document.getElementById('modal-save').onclick=saveFn;
+  document.getElementById('modal-overlay').style.display='flex';
+}
+
+function closeModal(){document.getElementById('modal-overlay').style.display='none';}
+
+function openAddTask(client,tipo='puntual'){
+  openModal('Nueva tarea',`
+    <div class="form-group" style="margin-bottom:10px;"><label>Cliente</label>
+      <select id="m-cli">
+        <option value="boost" ${client==='boost'?'selected':''}>Boost My Rental</option>
+        <option value="organica" ${client==='organica'?'selected':''}>Orgánica</option>
+        <option value="respira" ${client==='respira'?'selected':''}>Respira</option>
+        <option value="personal" ${client==='personal'?'selected':''}>Personal</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Tarea</label><input id="m-texto" placeholder="Descripción de la tarea"/></div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Tipo</label>
+      <select id="m-tipo"><option value="puntual" ${tipo==='puntual'?'selected':''}>Puntual</option><option value="recurrente" ${tipo==='recurrente'?'selected':''}>Recurrente</option></select>
+    </div>
+    <div class="form-group"><label>Fecha (opcional)</label><input type="date" id="m-fecha"/></div>`,
+    async()=>{
+      const texto=document.getElementById('m-texto').value.trim();
+      if(!texto)return;
+      D.tareas.push({id:Date.now(),cliente:document.getElementById('m-cli').value,texto,tipo:document.getElementById('m-tipo').value,done:false,fecha:document.getElementById('m-fecha').value});
+      await save();closeModal();renderAll();if(currentPage==='client')renderClientTareas();
+    });
+}
+
+function openAddContent(){
+  openModal('Nueva pieza de contenido',`
+    <div class="form-group" style="margin-bottom:10px;"><label>Tipo</label>
+      <select id="m-ctype"><option>Reel</option><option>Carrusel</option><option>Video</option><option>Historia</option></select>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Hook / Título</label><input id="m-chook" placeholder="Primera frase o título"/></div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Estado</label>
+      <select id="m-cestado"><option value="publicado">Publicado</option><option value="pendiente">Pendiente grabar</option></select>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Views (si publicado)</label><input type="number" id="m-cviews" placeholder="0"/></div>
+    <div class="form-group"><label>Fecha</label><input type="date" id="m-cfecha"/></div>`,
+    async()=>{
+      const hook=document.getElementById('m-chook').value.trim();
+      if(!hook)return;
+      D.contenido.push({id:Date.now(),cliente:currentClient,tipo:document.getElementById('m-ctype').value,hook,estado:document.getElementById('m-cestado').value,vistas:parseInt(document.getElementById('m-cviews').value)||0,fecha:document.getElementById('m-cfecha').value});
+      await save();closeModal();renderContenido();
+    });
+}
+
+function openAddInsp(){
+  openModal('Nueva referencia viral',`
+    <div class="form-group" style="margin-bottom:10px;"><label>Link de Instagram</label><input id="m-ilink" placeholder="https://instagram.com/reel/..."/></div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Hook que usa</label><input id="m-ihook" placeholder="Primera frase del reel"/></div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Formato</label><input id="m-iformato" placeholder="Ej: talking head, b-roll musical..."/></div>
+    <div class="form-group" style="margin-bottom:10px;"><label>¿Por qué funciona?</label><textarea id="m-iporque" placeholder="Tu análisis en 1-2 líneas"></textarea></div>
+    <div class="form-group"><label>Views aproximadas</label><input type="number" id="m-iviews" placeholder="0"/></div>`,
+    async()=>{
+      const link=document.getElementById('m-ilink').value.trim();
+      if(!link)return;
+      D.inspiracion.push({id:Date.now(),cliente:currentClient,link,hook:document.getElementById('m-ihook').value,formato:document.getElementById('m-iformato').value,porque:document.getElementById('m-iporque').value,views:parseInt(document.getElementById('m-iviews').value)||0});
+      await save();closeModal();renderContenido();
+    });
+}
+
+function openAddAnuncio(){
+  openModal('Nueva campaña',`
+    <div class="form-group" style="margin-bottom:10px;"><label>Nombre</label><input id="m-anom" placeholder="Ej: Alcance — Reel miedo"/></div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Estado</label>
+      <select id="m-aest"><option value="activa">Activa</option><option value="pausada">Pausada</option><option value="finalizada">Finalizada</option></select>
+    </div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Presupuesto diario (USD)</label><input type="number" id="m-apres" placeholder="7"/></div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Fecha inicio</label><input type="date" id="m-ainicio"/></div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Fecha fin</label><input type="date" id="m-afin"/></div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Leads recibidos</label><input type="number" id="m-aleads" placeholder="0"/></div>
+    <div class="form-group"><label>Gastado (USD)</label><input type="number" id="m-agastado" placeholder="0"/></div>`,
+    async()=>{
+      const nom=document.getElementById('m-anom').value.trim();
+      if(!nom)return;
+      D.anuncios.push({id:Date.now(),cliente:currentClient,nombre:nom,estado:document.getElementById('m-aest').value,presupuesto:parseFloat(document.getElementById('m-apres').value)||0,inicio:document.getElementById('m-ainicio').value,fin:document.getElementById('m-afin').value,leads:parseInt(document.getElementById('m-aleads').value)||0,gastado:parseFloat(document.getElementById('m-agastado').value)||0});
+      await save();closeModal();renderClientAnuncios();
+    });
+}
+
+function openAddIngreso(){
+  openModal('Registrar ingreso',`
+    <div class="form-group" style="margin-bottom:10px;"><label>Mes</label><input type="month" id="m-imes" value="${today().slice(0,7)}"/></div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Monto</label><input type="number" id="m-imonto" placeholder="0"/></div>
+    <div class="form-group" style="margin-bottom:10px;"><label>Moneda</label><select id="m-imoneda"><option value="EUR">EUR €</option><option value="USD">USD $</option></select></div>
+    <div class="form-group"><label>Notas</label><input id="m-inotas" placeholder="Ej: 33% dividendos mayo"/></div>`,
+    async()=>{
+      const monto=parseFloat(document.getElementById('m-imonto').value);
+      if(!monto)return;
+      D.ingresos.push({id:Date.now(),cliente:currentClient,mes:document.getElementById('m-imes').value,monto,moneda:document.getElementById('m-imoneda').value,notas:document.getElementById('m-inotas').value});
+      await save();closeModal();renderClientIngresos();updateSidebar();
+    });
+}
+
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+</script>
+</body>
+</html>
